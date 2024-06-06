@@ -11,10 +11,10 @@ class InventoryController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth'); // Menambahkan middleware auth untuk memastikan pengguna sudah login
+        $this->middleware('auth'); // adding middleware auth for make sure user is login
     }
 
-    // Method untuk menampilkan form create inventory
+    // Method for showing form create inventory
     public function index()
     {
         $inventory = Inventory::all();
@@ -26,18 +26,14 @@ class InventoryController extends Controller
         return view('inventory.pembelian');
     }
 
-    // public function showFormSelling()
-    // {
-    //     return view('inventory.penjualan');
-    // }
-
-    public function showFormSelling($id)
+    public function showFormSelling()
     {
-        $inventory = Inventory::findOrFail($id);
+        $inventory = Inventory::all();
         return view('inventory.penjualan', compact('inventory'));
     }
 
-    // Menyimpan inventaris baru ke database
+
+
     public function store(Request $request)
     {
         // Validasi Auth
@@ -75,40 +71,30 @@ class InventoryController extends Controller
         }
     }
 
-    // Memperbarui inventaris di database
-    public function update(Request $request, $id)
+    public function update(Request $request, $inventory_id)
     {
-        // Validasi Auth
         if (!Auth::check()) {
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // Validasi Form
         $request->validate([
-            'name' => 'required|string|max:255',
             'price' => 'required|integer',
-            'stock' => 'required|integer',
-            'total_price' => 'required|integer',
+            'stock' => 'required|integer|min:1',
         ]);
 
         try {
-            // Cari inventaris berdasarkan id
-            $inventory = Inventory::findOrFail($id);
+            $inventory = Inventory::findOrFail($inventory_id);
 
-            // Kurangi stok sesuai dengan jumlah penjualan
             $newStock = $inventory->stock - $request->stock;
 
-            // Pastikan stok tidak menjadi negatif
+            // make sure stock not become is negative value
             if ($newStock < 0) {
-                return back()->withErrors(['error' => 'Stok tidak mencukupi.']);
+                return back()->withErrors(['error' => 'Stock tidak mencukupi.']);
             }
 
-            // Update inventaris
+            // Update Inventory
             $inventory->update([
-                'name' => $request->name,
-                'price' => $request->price,
                 'stock' => $newStock,
-                'total_price' => $request->total_price,
             ]);
 
             Log::info('Penjualan berhasil diupdate.');
@@ -120,15 +106,18 @@ class InventoryController extends Controller
         }
     }
 
-    // Menghapus inventaris dari database
+
+
+
+    // delete data inventory from database
     public function destroy($id)
     {
-        // Validasi Auth
+        // Validate Auth
         if (!Auth::check()) {
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // Hapus inventaris
+        // Delete inventaris
         Inventory::find($id)->delete();
 
         return redirect()->route('inventory.index')->with('success', 'Inventaris berhasil dihapus.');
